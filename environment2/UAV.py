@@ -97,3 +97,6 @@ class UAV:
     # def get_temp_energy(self)->float:
     #     """返回这个时隙目前消耗的能量"""
     #     return self.temp_energy
+
+if __name__ == '__main__':
+    print(energy_by_speed(100))
