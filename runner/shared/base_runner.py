@@ -24,7 +24,6 @@ class Runner(object):
             self.render_envs = config['render_envs']       
 
         # parameters
-        self.env_name = self.all_args.env_name
         self.algorithm_name = self.all_args.algorithm_name
         self.experiment_name = self.all_args.experiment_name
         self.use_centralized_V = self.all_args.use_centralized_V

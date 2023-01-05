@@ -56,7 +56,7 @@ class EnvRunner(Runner):
             self.compute()
             train_infos = self.train()
 
-            # post process
+            # 已完成的所有step数之和
             total_num_steps = (episode + 1) * self.episode_length * self.n_rollout_threads
 
             # save model
@@ -66,15 +66,13 @@ class EnvRunner(Runner):
             # log information
             if episode % self.log_interval == 0:
                 end = time.time()
-                print("\n Scenario {} Algo {} Exp {} updates {}/{} episodes, total num timesteps {}/{}, FPS {}.\n"
-                      .format(self.all_args.scenario_name,
-                              self.algorithm_name,
-                              self.experiment_name,
-                              episode,
+                print("\n {}/{} episodes, {}/{} steps, {}/{} seconds.\n"
+                      .format(episode,
                               episodes,
                               total_num_steps,
                               self.num_env_steps,
-                              int(total_num_steps / (end - start))))
+                              int(end - start),
+                              int(self.num_env_steps / total_num_steps * (end - start))))
 
                 train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
                 print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))

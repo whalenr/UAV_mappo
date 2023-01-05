@@ -178,7 +178,6 @@ def get_config():
     parser.add_argument("--user_name", type=str, default='marl',help="[for wandb usage], to specify user's name for simply collecting training data.")
 
     # env parameters
-    parser.add_argument("--env_name", type=str, default='MyEnv', help="specify the name of environment")
     parser.add_argument("--use_obs_instead_of_state", action='store_true',
                         default=False, help="Whether to use global state or concatenated obs")
 
