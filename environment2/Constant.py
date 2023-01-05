@@ -2,7 +2,7 @@ N_user = 4
 """用户数"""
 N_ETUAV = 1
 """ETUAV数量"""
-N_DPUAV = 2
+N_DPUAV = 0
 "DPUAV数量"
 time_slice = 1
 """时隙长度，单位为s"""

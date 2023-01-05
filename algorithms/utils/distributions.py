@@ -68,7 +68,7 @@ class Categorical(nn.Module):
         return FixedCategorical(logits=x)
 
 
-class DiagGaussian(nn.Module):
+class DiagGaussian(nn.Module):  # 这个是连续动作的分布
     def __init__(self, num_inputs, num_outputs, use_orthogonal=True, gain=0.01):
         super(DiagGaussian, self).__init__()
 
@@ -88,6 +88,7 @@ class DiagGaussian(nn.Module):
             zeros = zeros.cuda()
 
         action_logstd = self.logstd(zeros)
+        """输出action的均值和方差"""
         return FixedNormal(action_mean, action_logstd.exp())
 
 

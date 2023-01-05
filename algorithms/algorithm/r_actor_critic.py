@@ -64,14 +64,15 @@ class R_Actor(nn.Module):
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         masks = check(masks).to(**self.tpdv)
-        if available_actions is not None:
+        if available_actions is not None:  # available_actions是用来规定范围的吗？
             available_actions = check(available_actions).to(**self.tpdv)
 
-        actor_features = self.base(obs)
+        actor_features = self.base(obs)  # 先处理一下obs
 
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             actor_features, rnn_states = self.rnn(actor_features, rnn_states, masks)
 
+        # 将处理好的actor_features送入ACTlayer
         actions, action_log_probs = self.act(actor_features, available_actions, deterministic)
 
         return actions, action_log_probs, rnn_states

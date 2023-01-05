@@ -15,6 +15,7 @@ from pathlib import Path
 import torch
 from config import get_config
 from environment2.env_wrappers import SubprocVecEnv, DummyVecEnv
+from environment2.Constant import N_ETUAV, N_DPUAV
 
 """Train script for MPEs."""
 
@@ -105,10 +106,10 @@ def main(args):
     torch.cuda.manual_seed_all(all_args.seed)
     np.random.seed(all_args.seed)
 
-    # env init
+    """生成环境、定义用户个数"""
     envs = make_train_env(all_args)
     eval_envs = make_eval_env(all_args) if all_args.use_eval else None
-    num_agents = all_args.num_agents
+    num_agents = N_ETUAV + N_DPUAV
 
     config = {
         "all_args": all_args,
@@ -128,13 +129,13 @@ def main(args):
     runner = Runner(config)
     runner.run()
 
-    # post process
-    envs.close()
-    if all_args.use_eval and eval_envs is not envs:
-        eval_envs.close()
-
-    runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
-    runner.writter.close()
+    # # post process
+    # envs.close()
+    # if all_args.use_eval and eval_envs is not envs:
+    #     eval_envs.close()
+    #
+    # runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
+    # runner.writter.close()
 
 
 if __name__ == "__main__":

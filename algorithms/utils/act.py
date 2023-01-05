@@ -77,10 +77,11 @@ class ACTLayer(nn.Module):
             actions = torch.cat(actions, -1)
             action_log_probs = torch.cat(action_log_probs, -1)
         elif self.continuous_action:
-            # actions = []
-            # action_log_probs = []
-            action_logit = self.action_out(x)
+            """action的分布"""
+            action_logit = self.action_out(x)  # 这里需要available_actions?
+            """输出均值或采样"""
             actions = action_logit.mode() if deterministic else action_logit.sample()
+            """取当前动作的概率(log)"""
             action_log_probs = action_logit.log_probs(actions)
             # actions.append(action.float())
             # action_log_probs.append(action_log_prob)

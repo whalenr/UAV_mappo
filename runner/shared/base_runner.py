@@ -115,7 +115,9 @@ class Runner(object):
     def train(self):
         """Train policies with data in buffer. """
         self.trainer.prep_training()
+        """更新网络并返回loss函数等"""
         train_infos = self.trainer.train(self.buffer)      
+        """将buffer中的最后一组数据放到最前面"""
         self.buffer.after_update()
         return train_infos
 

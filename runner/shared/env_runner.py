@@ -76,16 +76,6 @@ class EnvRunner(Runner):
                               self.num_env_steps,
                               int(total_num_steps / (end - start))))
 
-                # if self.env_name == "MPE":
-                #     env_infos = {}
-                #     for agent_id in range(self.num_agents):
-                #         idv_rews = []
-                #         for info in infos:
-                #             if 'individual_reward' in info[agent_id].keys():
-                #                 idv_rews.append(info[agent_id]['individual_reward'])
-                #         agent_k = 'agent%i/individual_rewards' % agent_id
-                #         env_infos[agent_k] = idv_rews
-
                 train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
                 print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))
                 self.log_train(train_infos, total_num_steps)
@@ -137,8 +127,8 @@ class EnvRunner(Runner):
             # actions  --> actions_env : shape:[10, 1] --> [5, 2, 5]
             actions_env = np.squeeze(np.eye(self.envs.action_space[0].n)[actions], 2)
         else:
-            # TODO 这里改造成自己环境需要的形式即可
-            actions_env = actions
+            """actions范围是无穷，需要改成适合环境的"""
+            actions_env = np.tanh(actions)
             # raise NotImplementedError
 
         return values, actions, action_log_probs, rnn_states, rnn_states_critic, actions_env
