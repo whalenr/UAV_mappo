@@ -12,6 +12,7 @@ from environment2.ETUAV import ETUAV
 from environment2.Position import Position
 from environment2.UE import UE
 
+from gym import spaces
 
 def get_link_dict(ues: [UE], dpuavs: [DPUAV]):
     """返回UEs和DAPUAVs之间的连接情况,返回一个dict,key为dpuav编号，value为此dpuav能够连接的ue组成的list"""
@@ -58,10 +59,29 @@ class Area:
     def __init__(self, x_range=500.0, y_range=500.0):
 
         self.agent_num = N_ETUAV
-        self.action_dim = 2  # 角度和rate
-        self.overall_state_dim = N_user + self.agent_num * 2 * (N_user + self.agent_num - 1)
-        self.public_state_dim = N_user  # 用户的电量
-        self.private_state_dim = 2 * (N_user + self.agent_num - 1)  # 与其他的位置关系是私有部分
+        self.single_action_dim = 2  # 角度和rate
+        self.single_obs_dim = N_user + 2 * (N_user + self.agent_num - 1)  # 用户的AoI、lambda、队列状况是公有部分，与其他的位置关系是私有部分
+        self.share_obs_dim = self.agent_num * self.single_obs_dim
+
+        self.action_space = []
+        self.observation_space = []
+        self.share_observation_space = []
+
+        total_action_space = []
+        for agent in range(self.agent_num):
+            # physical action space
+            u_action_space = spaces.Box(low=-np.inf, high=+np.inf, shape=(self.single_action_dim,), dtype=np.float32)
+
+            # total action space
+            self.action_space.append(u_action_space)
+
+            # observation space
+            self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(self.single_obs_dim,),
+                                                     dtype=np.float32))  # [-inf,inf]
+
+        # shared observation space
+        self.share_observation_space = [spaces.Box(low=-np.inf, high=+np.inf, shape=(self.share_obs_dim,),
+                                                   dtype=np.float32) for _ in range(self.agent_num)]
 
         self.limit = np.empty((2, 2), np.float32)
         """场地限制"""
@@ -90,7 +110,7 @@ class Area:
         """UE的aoi"""
 
         state = self.calcul_etuav_state()
-        return state
+        return np.stack(state)
 
     def render(self):
         print(self.ETUAVs[0].position.tail)
@@ -114,20 +134,27 @@ class Area:
             etuav.charge_all_ues(self.UEs)
 
         # 计算目标函数
-        target = self.calcul_etuav_target()
-        reward = [-target] * N_ETUAV
+        target = [self.calcul_etuav_target()]
+        reward = [target] * N_ETUAV
         # 加入能量消耗惩罚
-        for et in range(N_ETUAV):
-            reward[i] -= etuav_move_energy[i] * 0.0001
+        for i in range(N_ETUAV):
+            reward[i][0] -= etuav_move_energy[i] * 0.0001
         # UE产生数据
         for ue in self.UEs:
             ue.generate_task()
         # 计算状态
         state = self.calcul_etuav_state()
 
-        done = False
+        done = self.calcul_dones()
 
-        return state, reward, done, ''
+        return np.stack(state), np.stack(reward), np.stack(done), ''
+
+    def calcul_dones(self):
+        """生成是否结束的数列"""
+        dones = []
+        for _ in range(self.agent_num):
+            dones.append(False)
+        return dones
 
     def calcul_etuav_target(self) -> float:
         """计算etuav的目标函数值"""
