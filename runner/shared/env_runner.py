@@ -1,16 +1,3 @@
-"""
-# @Time    : 2021/7/1 7:15 下午
-# @Author  : hezhiqiang01
-# @Email   : hezhiqiang01@baidu.com
-# @File    : env_runner.py
-"""
-
-"""
-# @Time    : 2021/7/1 7:04 下午
-# @Author  : hezhiqiang01
-# @Email   : hezhiqiang01@baidu.com
-# @File    : huaru_runner.py
-"""
 
 import time
 import numpy as np
@@ -30,30 +17,32 @@ class EnvRunner(Runner):
         super(EnvRunner, self).__init__(config)
 
     def run(self):
+        # reset环境并将obs和share_obs存入buffer
         self.warmup()
-        """reset环境并存入buffer"""
 
         start = time.time()
         episodes = int(self.num_env_steps) // self.episode_length // self.n_rollout_threads
 
+        # 训练episodes次
         for episode in range(episodes):
+            # 更新learning rate
             if self.use_linear_lr_decay:
                 self.trainer.policy.lr_decay(episode, episodes)
 
+            # 每个episode有self.episode_length步
             for step in range(self.episode_length):
-                # Sample actions
+                # 通过该step的观测值得到action、适应环境的action_env和它的概率，以及该状态的value
                 values, actions, action_log_probs, rnn_states, rnn_states_critic, actions_env = self.collect(step)
-
-                # Obser reward and next obs
+                # 环境采取动作得到next_state、reward、dones
                 obs, rewards, dones, infos = self.envs.step(actions_env)
-
                 data = obs, rewards, dones, infos, values, actions, action_log_probs, rnn_states, rnn_states_critic
-
-                # insert data into buffer
+                # 将数据存入buffer
                 self.insert(data)
 
-            # compute return and update network
+            # 在buffer中根据reward计算每一步的returns (Q value)
             self.compute()
+
+            # 更新网络并返回loss值等
             train_infos = self.train()
 
             # 已完成的所有step数之和
@@ -73,61 +62,43 @@ class EnvRunner(Runner):
                               self.num_env_steps,
                               int(end - start),
                               int(self.num_env_steps / total_num_steps * (end - start))))
-
+                # buffer中的episode的总reward
                 train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
                 print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))
                 self.log_train(train_infos, total_num_steps)
                 # self.log_env(env_infos, total_num_steps)
 
-            # eval
+            # evaluate
             if episode % self.eval_interval == 0 and self.use_eval:
                 self.eval(self.episode_length)
 
     def warmup(self):
-        # reset env
         obs = self.envs.reset()  # shape = (并行环境数, 智能体数, 观测环境维数)
-
-        # replay buffer(将当前状态存入buffer)
-        if self.use_centralized_V:
-            share_obs = obs.reshape(self.n_rollout_threads, -1)  # shape = (并行环境数, 所有agent观测维数之和)
-            share_obs = np.expand_dims(share_obs, 1).repeat(self.num_agents, axis=1)
-            # shape = (并行环境数, agent个数, 所有agent观测维数之和)
-        else:
-            share_obs = obs
-
+        # 产生share_obs,实现去重
+        share_obs = self.generate_share_obs(obs)
+        # 将obs和share_obs存入buffer
         self.buffer.share_obs[0] = share_obs.copy()
         self.buffer.obs[0] = obs.copy()
 
     @torch.no_grad()
     def collect(self, step):
         self.trainer.prep_rollout()
+        # 将该step的观测值输入actor网络得到action和它的概率，并且用critic网络得到该动状态的value
         value, action, action_log_prob, rnn_states, rnn_states_critic \
             = self.trainer.policy.get_actions(np.concatenate(self.buffer.share_obs[step]),
                                               np.concatenate(self.buffer.obs[step]),
                                               np.concatenate(self.buffer.rnn_states[step]),
                                               np.concatenate(self.buffer.rnn_states_critic[step]),
                                               np.concatenate(self.buffer.masks[step]))
-        # [self.envs, agents, dim]
+        # 对数据进行整形，shape=[envs_num, agent_num, dim]
         values = np.array(np.split(_t2n(value), self.n_rollout_threads))
         actions = np.array(np.split(_t2n(action), self.n_rollout_threads))
         action_log_probs = np.array(np.split(_t2n(action_log_prob), self.n_rollout_threads))
         rnn_states = np.array(np.split(_t2n(rnn_states), self.n_rollout_threads))
         rnn_states_critic = np.array(np.split(_t2n(rnn_states_critic), self.n_rollout_threads))
-        # rearrange action
-        if self.envs.action_space[0].__class__.__name__ == 'MultiDiscrete':
-            for i in range(self.envs.action_space[0].shape):
-                uc_actions_env = np.eye(self.envs.action_space[0].high[i] + 1)[actions[:, :, i]]
-                if i == 0:
-                    actions_env = uc_actions_env
-                else:
-                    actions_env = np.concatenate((actions_env, uc_actions_env), axis=2)
-        elif self.envs.action_space[0].__class__.__name__ == 'Discrete':
-            # actions  --> actions_env : shape:[10, 1] --> [5, 2, 5]
-            actions_env = np.squeeze(np.eye(self.envs.action_space[0].n)[actions], 2)
-        else:
-            """actions范围是无穷，需要改成适合环境的"""
-            actions_env = actions.clip(-1, 1)
-            # raise NotImplementedError
+
+        """actions范围是无穷，需要改成适合环境的"""
+        actions_env = actions.clip(-1, 1)
 
         return values, actions, action_log_probs, rnn_states, rnn_states_critic, actions_env
 
@@ -141,14 +112,23 @@ class EnvRunner(Runner):
         masks = np.ones((self.n_rollout_threads, self.num_agents, 1), dtype=np.float32)
         masks[dones == True] = np.zeros(((dones == True).sum(), 1), dtype=np.float32)
 
-        if self.use_centralized_V:
-            share_obs = obs.reshape(self.n_rollout_threads, -1)
-            share_obs = np.expand_dims(share_obs, 1).repeat(self.num_agents, axis=1)
-        else:
-            share_obs = obs
+        # 产生share_obs，实现去重
+        share_obs = self.generate_share_obs(obs)
 
+        # 将数据存到buffer中（这里的obs是下一时刻的obs了）
         self.buffer.insert(share_obs, obs, rnn_states, rnn_states_critic, actions, action_log_probs, values, rewards,
                            masks)
+
+    def generate_share_obs(self, obs):
+        """"""
+        """定义share_obs，实现去重的工作（有两处用到）"""
+        if self.use_centralized_V:
+            share_obs = obs.reshape(self.n_rollout_threads, -1)  # shape = (并行环境数, 所有agent观测维数之和/公共维数)
+            share_obs = np.expand_dims(share_obs, 1).repeat(self.num_agents, axis=1)
+            # shape = (并行环境数, agent个数, 所有agent观测维数之和)
+        else:
+            share_obs = obs
+        return share_obs
 
     @torch.no_grad()
     def eval(self, total_num_steps):
@@ -160,6 +140,7 @@ class EnvRunner(Runner):
 
         for eval_step in range(self.episode_length):
             self.trainer.prep_rollout()
+            # 得到动作，deterministic=True时输出均值，不采样
             eval_action, eval_rnn_states = self.trainer.policy.act(np.concatenate(eval_obs),
                                                                    np.concatenate(eval_rnn_states),
                                                                    np.concatenate(eval_masks),
@@ -167,18 +148,8 @@ class EnvRunner(Runner):
             eval_actions = np.array(np.split(_t2n(eval_action), self.n_eval_rollout_threads))
             eval_rnn_states = np.array(np.split(_t2n(eval_rnn_states), self.n_eval_rollout_threads))
 
-            if self.eval_envs.action_space[0].__class__.__name__ == 'MultiDiscrete':
-                for i in range(self.eval_envs.action_space[0].shape):
-                    eval_uc_actions_env = np.eye(self.eval_envs.action_space[0].high[i] + 1)[eval_actions[:, :, i]]
-                    if i == 0:
-                        eval_actions_env = eval_uc_actions_env
-                    else:
-                        eval_actions_env = np.concatenate((eval_actions_env, eval_uc_actions_env), axis=2)
-            elif self.eval_envs.action_space[0].__class__.__name__ == 'Discrete':
-                eval_actions_env = np.squeeze(np.eye(self.eval_envs.action_space[0].n)[eval_actions], 2)
-            else:
-                """actions范围是无穷，需要改成适合环境的"""
-                eval_actions_env = eval_actions.clip(-1, 1)
+            """actions范围是无穷，需要改成适合环境的"""
+            eval_actions_env = eval_actions.clip(-1, 1)
 
             # Obser reward and next obs
             eval_obs, eval_rewards, eval_dones, eval_infos = self.eval_envs.step(eval_actions_env)
@@ -189,9 +160,13 @@ class EnvRunner(Runner):
             eval_masks = np.ones((self.n_eval_rollout_threads, self.num_agents, 1), dtype=np.float32)
             eval_masks[eval_dones == True] = np.zeros(((eval_dones == True).sum(), 1), dtype=np.float32)
 
+        # 每一步的reward
         eval_episode_rewards = np.array(eval_episode_rewards)
+
         eval_env_infos = {}
-        eval_env_infos['eval_average_episode_rewards'] = np.sum(np.array(eval_episode_rewards), axis=0)
-        eval_average_episode_rewards = np.mean(eval_env_infos['eval_average_episode_rewards'])
+        # 该episode总的reward, shape = [并行环境数, agent数, 1]
+        eval_env_infos['eval_episode_rewards'] = np.sum(np.array(eval_episode_rewards), axis=0)
+        # 对每个环境、每个agent做平均
+        eval_average_episode_rewards = np.mean(eval_env_infos['eval_episode_rewards'])
         print("eval average episode rewards of agent: " + str(eval_average_episode_rewards))
         self.log_env(eval_env_infos, total_num_steps)

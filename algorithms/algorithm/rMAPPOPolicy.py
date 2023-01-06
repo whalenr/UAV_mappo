@@ -55,7 +55,7 @@ class RMAPPOPolicy:
     def get_actions(self, cent_obs, obs, rnn_states_actor, rnn_states_critic, masks, available_actions=None,
                     deterministic=False):
         """
-        Compute actions and value function predictions for the given inputs.
+        根据输入的观测值得到action和它的概率，以及该状态的value
         :param cent_obs (np.ndarray): centralized input to the critic.
         :param obs (np.ndarray): local agent inputs to the actor.
         :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.

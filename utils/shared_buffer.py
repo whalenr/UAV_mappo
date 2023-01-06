@@ -167,7 +167,7 @@ class SharedReplayBuffer(object):
 
     def compute_returns(self, next_value, value_normalizer=None):
         """
-        Compute returns either as discounted sum of rewards, or using GAE.
+        Compute returns either as discounted sum of rewards, or using GAE. 根据r计算Q
         :param next_value: (np.ndarray) value predictions for the step after the last episode step.
         :param value_normalizer: (PopArt) If not None, PopArt value normalizer instance.
         """

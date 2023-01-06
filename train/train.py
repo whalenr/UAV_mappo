@@ -17,8 +17,6 @@ from config import get_config
 from environment2.env_wrappers import SubprocVecEnv, DummyVecEnv
 from environment2.Constant import N_ETUAV, N_DPUAV
 
-"""Train script for MPEs."""
-
 
 def make_train_env(all_args):
     def get_env_fn():
@@ -45,29 +43,26 @@ def make_eval_env(all_args):
 
 
 def parse_args(args, parser):
-    parser.add_argument('--scenario_name', type=str, default='MyEnv', help="Which scenario to run on")
-    parser.add_argument("--num_landmarks", type=int, default=3)
-    parser.add_argument('--num_agents', type=int, default=2, help="number of players")
+    parser.add_argument('--num_agents', type=int, default=N_ETUAV+N_DPUAV, help="number of players")
+    """定义agent数量"""
 
     all_args = parser.parse_known_args(args)[0]
-
     return all_args
 
 
 def main(args):
+    # 定义数据
     parser = get_config()
     all_args = parse_args(args, parser)
 
-    if all_args.algorithm_name == "rmappo":
-        assert (all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy), ("check recurrent policy!")
-    elif all_args.algorithm_name == "mappo":
-        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), (
-            "check recurrent policy!")
-    else:
-        raise NotImplementedError
-
-    assert (all_args.share_policy == True and all_args.scenario_name == 'simple_speaker_listener') == False, (
-        "The simple_speaker_listener scenario can not use shared policy. Please check the config.py.")
+    # # 判断使用卷积网络是否正确
+    # if all_args.algorithm_name == "rmappo":
+    #     assert (all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy), ("check recurrent policy!")
+    # elif all_args.algorithm_name == "mappo":
+    #     assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), (
+    #         "check recurrent policy!")
+    # else:
+    #     raise NotImplementedError
 
     # cuda
     if all_args.cuda and torch.cuda.is_available():
@@ -82,11 +77,12 @@ def main(args):
         device = torch.device("cpu")
         torch.set_num_threads(all_args.n_training_threads)
 
-    # run dir
+    # 定义数据存放路径
     run_dir = Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0] + "/results")
     if not run_dir.exists():
         os.makedirs(str(run_dir))
 
+    # 设置进程名
     setproctitle.setproctitle(str(all_args.algorithm_name) + "-" + str(all_args.experiment_name) + "@" + str(
         all_args.user_name))
 
@@ -95,9 +91,11 @@ def main(args):
     torch.cuda.manual_seed_all(all_args.seed)
     np.random.seed(all_args.seed)
 
-    """生成环境、定义用户个数"""
+    # 生成环境
     envs = make_train_env(all_args)
     eval_envs = make_eval_env(all_args) if all_args.use_eval else None
+
+    """定义用户个数"""
     num_agents = N_ETUAV + N_DPUAV
 
     config = {
@@ -109,22 +107,19 @@ def main(args):
         "run_dir": run_dir
     }
 
-    # run experiments
+    # 定义runner
     if all_args.share_policy:
         from runner.shared.env_runner import EnvRunner as Runner
     else:
         from runner.separated.env_runner import EnvRunner as Runner
-
     runner = Runner(config)
+
+    # 主程序入口
     runner.run()
 
-    # # post process
-    # envs.close()
-    # if all_args.use_eval and eval_envs is not envs:
-    #     eval_envs.close()
-    #
-    # runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
-    # runner.writter.close()
+    # ？？？
+    runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
+    runner.writter.close()
 
 
 if __name__ == "__main__":

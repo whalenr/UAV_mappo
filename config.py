@@ -160,22 +160,27 @@ def get_config():
     parser.add_argument("--algorithm_name", type=str,
                         default='mappo', choices=["rmappo", "mappo"])
 
-    parser.add_argument("--experiment_name", type=str, default="check", help="an identifier to distinguish different experiment.")
+    parser.add_argument("--experiment_name", type=str, default="check", help="distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
-    parser.add_argument("--cuda", action='store_false', default=True, help="by default True, will use GPU to train; or else will use CPU;")
+    parser.add_argument("--cuda", action='store_false', default=True, help="whether use GPU to train")
     parser.add_argument("--cuda_deterministic",
-                        action='store_false', default=True, help="by default, make sure random seed effective. if set, bypass such function.")
+                        action='store_false', default=False, help="by default, make sure random seed effective. if set, bypass such function.")
     parser.add_argument("--n_training_threads", type=int,
-                        default=1, help="Number of torch threads for training")
+                        default=1, help="Number of torch threads for training")  # ？
     parser.add_argument("--n_rollout_threads", type=int, default=10,
-                        help="Number of parallel envs for training rollouts")
-    parser.add_argument("--n_eval_rollout_threads", type=int, default=1,
+                        help="Number of parallel envs for training rollouts")  # 同时训练的环境数
+    parser.add_argument("--n_eval_rollout_threads", type=int, default=5,
                         help="Number of parallel envs for evaluating rollouts")
     parser.add_argument("--n_render_rollout_threads", type=int, default=1,
                         help="Number of parallel envs for rendering rollouts")
     parser.add_argument("--num_env_steps", type=int, default=2000000,
-                        help='Number of environment steps to train (default: 10e6)')
-    parser.add_argument("--user_name", type=str, default='marl',help="[for wandb usage], to specify user's name for simply collecting training data.")
+                        help='Number of environment steps to train (default: 10e6)')  # 训练的总步数
+
+    # wandb
+    parser.add_argument("--use_wandb", type=bool, default=True,
+                        help="by default True, will log date to wandb server. or else will use tensorboard to log data.")
+    parser.add_argument("--user_name", type=str, default='marl',
+                        help="[for wandb usage], to specify user's name for simply collecting training data.")  # wandb参数
 
     # env parameters
     parser.add_argument("--use_obs_instead_of_state", action='store_true',
@@ -183,27 +188,29 @@ def get_config():
 
     # replay buffer parameters
     parser.add_argument("--episode_length", type=int,
-                        default=100, help="Max length for any episode")
+                        default=100, help="Max length for any episode")  # 每个episode的长度
 
     # network parameters
     parser.add_argument("--share_policy", action='store_false',
-                        default=True, help='Whether agent share the same policy')
+                        default=True, help='Whether agent share the same policy')  # ？
     parser.add_argument("--use_centralized_V", action='store_false',
-                        default=True, help="Whether to use centralized V function")
+                        default=True, help="Whether to use centralized V function")  # ？
     parser.add_argument("--stacked_frames", type=int, default=1,
-                        help="Dimension of hidden layers for actor/critic networks")
+                        help="Dimension of hidden layers for actor/critic networks")  # ？
     parser.add_argument("--use_stacked_frames", action='store_true',
                         default=False, help="Whether to use stacked_frames")
     parser.add_argument("--hidden_size", type=int, default=64,
-                        help="Dimension of hidden layers for actor/critic networks") 
+                        help="Dimension of hidden layers for actor/critic networks")  # 网络神经元个数
     parser.add_argument("--layer_N", type=int, default=1,
-                        help="Number of layers for actor/critic networks")
+                        help="Number of layers for actor/critic networks")  # 网路层数
     parser.add_argument("--use_ReLU", action='store_false',
                         default=False, help="Whether to use ReLU or tanh")
-    parser.add_argument("--use_popart", action='store_true', default=False, help="by default False, use PopArt to normalize rewards.")
-    parser.add_argument("--use_valuenorm", action='store_false', default=True, help="by default True, use running mean and std to normalize rewards.")
+    parser.add_argument("--use_popart", action='store_true', default=False,
+                        help="by default False, use PopArt to normalize rewards.")  # 是否使用PopArt对reward进行归一化
+    parser.add_argument("--use_valuenorm", action='store_false', default=True,
+                        help="by default True, use running mean and std to normalize rewards.")  # 是否对reward进行白化
     parser.add_argument("--use_feature_normalization", action='store_false',
-                        default=True, help="Whether to apply layernorm to the inputs")
+                        default=True, help="Whether to apply layernorm to the inputs")  # ？是否对环境数据进行预处理？
     parser.add_argument("--use_orthogonal", action='store_false', default=True,
                         help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
     parser.add_argument("--gain", type=float, default=0.01,
@@ -220,15 +227,15 @@ def get_config():
 
     # optimizer parameters
     parser.add_argument("--lr", type=float, default=5e-4,
-                        help='learning rate (default: 5e-4)')
+                        help='learning rate (default: 5e-4)')  # 学习率
     parser.add_argument("--critic_lr", type=float, default=5e-4,
-                        help='critic learning rate (default: 5e-4)')
+                        help='critic learning rate (default: 5e-4)')  # critic的学习率
     parser.add_argument("--opti_eps", type=float, default=1e-5,
                         help='RMSprop optimizer epsilon (default: 1e-5)')
     parser.add_argument("--weight_decay", type=float, default=0)
 
     # ppo parameters
-    parser.add_argument("--ppo_epoch", type=int, default=15,
+    parser.add_argument("--ppo_epoch", type=int, default=10,
                         help='number of ppo epochs (default: 15)')
     parser.add_argument("--use_clipped_value_loss",
                         action='store_false', default=True, help="by default, clip loss value. If set, do not clip loss value.")
@@ -247,31 +254,37 @@ def get_config():
     parser.add_argument("--use_gae", action='store_false',
                         default=True, help='use generalized advantage estimation')
     parser.add_argument("--gamma", type=float, default=0.6,
-                        help='discount factor for rewards (default: 0.99)')
+                        help='discount factor for rewards (default: 0.99)')  # 衰减因子
     parser.add_argument("--gae_lambda", type=float, default=0.95,
                         help='gae lambda parameter (default: 0.95)')
     parser.add_argument("--use_proper_time_limits", action='store_true',
                         default=False, help='compute returns taking into account time limits')
-    parser.add_argument("--use_huber_loss", action='store_false', default=True, help="by default, use huber loss. If set, do not use huber loss.")
+    parser.add_argument("--use_huber_loss", action='store_false', default=True,
+                        help="by default, use huber loss. If set, do not use huber loss.")
     parser.add_argument("--use_value_active_masks",
-                        action='store_false', default=True, help="by default True, whether to mask useless data in value loss.")
+                        action='store_false', default=False, help="by default True, whether to mask useless data in value loss.")
     parser.add_argument("--use_policy_active_masks",
-                        action='store_false', default=True, help="by default True, whether to mask useless data in policy loss.")
+                        action='store_false', default=False, help="by default True, whether to mask useless data in policy loss.")
     parser.add_argument("--huber_delta", type=float, default=10.0, help=" coefficience of huber loss.")
 
     # run parameters
     parser.add_argument("--use_linear_lr_decay", action='store_true',
-                        default=False, help='use a linear schedule on the learning rate')
+                        default=True, help='use a linear schedule on the learning rate')
     # save parameters
-    parser.add_argument("--save_interval", type=int, default=10, help="time duration between contiunous twice models saving.")
+    parser.add_argument("--save_interval", type=int, default=10,
+                        help="time duration between contiunous twice models saving.")  # 保存模型的间隔
 
     # log parameters
-    parser.add_argument("--log_interval", type=int, default=5, help="time duration between contiunous twice log printing.")
+    parser.add_argument("--log_interval", type=int, default=5,
+                        help="time duration between contiunous twice log printing.")  # 保存log的间隔
 
     # eval parameters
-    parser.add_argument("--use_eval", action='store_true', default=True, help="by default, do not start evaluation. If set`, start evaluation alongside with training.")
-    parser.add_argument("--eval_interval", type=int, default=25, help="time duration between contiunous twice evaluation progress.")
-    parser.add_argument("--eval_episodes", type=int, default=32, help="number of episodes of a single evaluation.")
+    parser.add_argument("--use_eval", action='store_true', default=True,
+                        help="whether start evaluation alongside with training.")  # 训练过程中是否evaluate
+    parser.add_argument("--eval_interval", type=int, default=100,
+                        help="time duration between contiunous twice evaluation progress.")  # 测试间隔
+    parser.add_argument("--eval_episodes", type=int, default=4,
+                        help="number of episodes of a single evaluation.")  # 测试环境的数量
 
     # render parameters
     parser.add_argument("--save_gifs", action='store_true', default=False, help="by default, do not save render video. If set, save video.")

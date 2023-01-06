@@ -165,7 +165,7 @@ class Area:
         weight1 = 1
         weight2 = 0
         """低电量惩罚权重"""
-        bias = 0.5
+        bias = 0
         """为强化学习方便的一个偏置"""
         return (sum_energy * weight1 + punish * weight2-bias)
 

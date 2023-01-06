@@ -103,20 +103,22 @@ class Runner(object):
     
     @torch.no_grad()
     def compute(self):
-        """Calculate returns for the collected data."""
+        """Calculate returns (Q value) for the collected data."""
         self.trainer.prep_rollout()
+        # 得到最后一个动作的value
         next_values = self.trainer.policy.get_values(np.concatenate(self.buffer.share_obs[-1]),
                                                 np.concatenate(self.buffer.rnn_states_critic[-1]),
                                                 np.concatenate(self.buffer.masks[-1]))
         next_values = np.array(np.split(_t2n(next_values), self.n_rollout_threads))
+        # 在buffer中根据r计算每一步的Q值
         self.buffer.compute_returns(next_values, self.trainer.value_normalizer)
     
     def train(self):
         """Train policies with data in buffer. """
         self.trainer.prep_training()
-        """更新网络并返回loss函数等"""
+        # 更新网络并返回loss函数等
         train_infos = self.trainer.train(self.buffer)      
-        """将buffer中的最后一组数据放到最前面"""
+        # 将buffer中的最后一组数据放到最前面
         self.buffer.after_update()
         return train_infos
 
