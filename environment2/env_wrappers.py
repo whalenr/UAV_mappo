@@ -178,12 +178,12 @@ class ShareVecEnv(ABC):
         """
         raise NotImplementedError
 
-    @property
-    def unwrapped(self):
-        if isinstance(self, VecEnvWrapper):
-            return self.venv.unwrapped
-        else:
-            return self
+    # @property
+    # def unwrapped(self):
+    #     if isinstance(self, VecEnvWrapper):
+    #         return self.venv.unwrapped
+    #     else:
+    #         return self
 
     def get_viewer(self):
         if self.viewer is None:
@@ -291,11 +291,6 @@ class DummyVecEnv(ShareVecEnv):
         for env in self.envs:
             env.close()
 
-    def render(self, mode="human"):
-        if mode == "rgb_array":
-            return np.array([env.render(mode=mode) for env in self.envs])
-        elif mode == "human":
-            for env in self.envs:
-                env.render(mode=mode)
-        else:
-            raise NotImplementedError
+    def render(self):
+        for env in self.envs:
+            env.render()
