@@ -167,7 +167,7 @@ class Area:
         """低电量惩罚权重"""
         bias = 0.5
         """为强化学习方便的一个偏置"""
-        return -(sum_energy * weight1 + punish * weight2-bias)
+        return (sum_energy * weight1 + punish * weight2-bias)
 
     def calcul_etuav_target_2(self)->float:
         """计算etuav的目标函数值，增加边界外惩罚"""
@@ -187,7 +187,7 @@ class Area:
             if not self.if_in_area(et.position):
                 out_count += 1
 
-        return -(sum_energy * weight1 + punish * weight2 - out_punish*out_count)
+        return (sum_energy * weight1 + punish * weight2 - out_punish*out_count)
 
 
 
