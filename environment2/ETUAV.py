@@ -13,23 +13,27 @@ class ETUAV(UAV):
         """无人机无线充电的功率(W)"""
 
     def charge_ue(self, ue: UE):
-        """给单个UE充电(J)"""
+        """给单个UE充电(J),返回充电电量(j)"""
         gain = calcul_channel_gain(self.position, ue.position)
-        ue.charge(gain * self.charge_power * time_slice)
+        return ue.charge(gain * self.charge_power * time_slice)
 
-    def charge_all_ues(self, ues:[UE]):
-        """"给所有UE充电"""
+    def charge_all_ues(self, ues: [UE]):
+        """"给所有UE充电，并返回总充电量(j)"""
+        sum_charge_energy = 0
         for ue in ues:
-            self.charge_ue(ue)
+            sum_charge_energy += self.charge_ue(ue)
 
-    def charge_energy(self, ue:UE):
-        """返回充电量"""
+    def charge_energy(self, ue: UE):
+        """返回充电量，并不实际充电"""
         gain = calcul_channel_gain(self.position, ue.position)
-        return gain * self.charge_power * time_slice
-
+        energy = gain * self.charge_power * time_slice
+        """可以冲入的电量"""
+        empty_energy = ue.get_energy_max() - ue.get_energy()
+        """UE可以充入的电量空间"""
+        return min(energy, empty_energy)
 
 
 if __name__ == '__main__':
-    etuav = ETUAV(Position(0,0,ETUAV_height))
-    ue = UE(Position(0,50,0))
-    print(etuav.charge_energy(ue))
+    etuav = ETUAV(Position(0, 0, ETUAV_height))
+    ue1 = UE(Position(0, 50, 0))
+    print(etuav.charge_energy(ue1))

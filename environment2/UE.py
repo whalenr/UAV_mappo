@@ -20,14 +20,13 @@ class UE:
         self.low_probability = 1
         """低电量时每个时间间隔产生数据的概率，待定"""
 
-        self.energy = 1 * (10 ** (-5))
-                      # * random.random()
-        """用户的电量(j)"""
+        self.energy = 1 * (10 ** (-5)) * random.random()
+        """用户的电量(j),初始电量随机"""
         self.energy_max = 1 * (10 ** (-5))
         """电量的最大值"""
         self.energy_threshold = 2 * (10 ** (-6))
         """电量阈值，低于阈值，进入低功耗状态"""
-        self.energy_state = 1
+        self.energy_state = 1 if self.energy >= self.energy_threshold else 0
         """电量状态，1为高电量，0为低电量"""
 
         self.energy_conversion_efficiency = 0.2
@@ -35,12 +34,6 @@ class UE:
 
         self.task = None
         """生成好的任务"""
-
-        self.speed_limit = speed_limit
-        """速度限制"""
-        self.time_slice = 1
-        self.move_limit = self.speed_limit * self.time_slice
-        """每个时间间隔移动距离的限制，反应了用户的移动速度"""
 
         self.transmission_power = 1 * (10 ** (-5))
         """UE的发射功率(w)"""
@@ -56,31 +49,23 @@ class UE:
         """是否与DPUAV相连"""
         return self.position.if_connect(dpuav.position, dpuav.link_range)
 
-    # 移动相关函数
-    # def move_by_radian(self, radian: float, distance: float):
-    #     """用户水平移动，弧度形式"""
-    #     if not 0 <= distance <= self.move_limit:
-    #         print("移动距离超出限制")
-    #         return False
-    #     self.position.move_by_radian(radian, distance)
-    #
-    # def move_by_radian_rate(self, radian: float, rate: float):
-    #     """用户水平移动，rate参数为0到1之间的数"""
-    #     self.move_by_radian(radian, self.move_limit * rate)
+
 
     # 电量相关函数
     def update_energy_state(self):
         """更新电量状态"""
-        if self.energy > self.energy_threshold:
+        if self.energy >= self.energy_threshold:
             self.energy_state = 1
         else:
             self.energy_state = 0
 
     def charge(self, energy: float):
-        """给UE充电，单位为J"""
+        """给UE充电，单位为J，返回充电的电量"""
+        previous_energy = self.energy  # 充电前的电量
         temp_energy = energy * self.energy_conversion_efficiency
         self.energy = min(self.energy_max, self.energy + temp_energy)
         self.update_energy_state()  # 更新电量状态
+        return self.energy - previous_energy
 
     def discharge(self, energy: float):
         """UE耗电，电量足够则扣除电量，返回True，否则不扣除电量并返回False"""
@@ -94,9 +79,17 @@ class UE:
         """返回当前电量"""
         return self.energy
 
+    def get_energy_percent(self):
+        """返回百分比电量"""
+        return self.energy / self.energy_max
+
     def get_energy_state(self):
         """返回电量状态"""
         return self.energy_state
+
+    def get_energy_max(self):
+        """返回电量的最大值"""
+        return self.energy_max
 
     # 传输相关函数
     def get_transmission_rate_with_UAV(self, uav: DPUAV) -> float:

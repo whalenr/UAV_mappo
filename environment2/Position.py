@@ -18,9 +18,13 @@ class Position:
     def relative_position(self, other_position: 'Position'):
         return self.data - other_position.data
 
-    def relative_horizontal_position(self, other_position: 'Position'):
+    def relative_horizontal_position(self, other_position: 'Position')->[]:
         """返回list格式的水平相对位置"""
         return [self.data[0, 0] - other_position.data[0, 0], self.data[0, 1] - other_position.data[0, 1]]
+
+    def relative_horizontal_position_percent(self, other_position: 'Position', x_length:float,y_length:float)->[]:
+        """返回list格式的水平相对位置,除以x_length和y_length"""
+        return [(self.data[0, 0] - other_position.data[0, 0]) / x_length, (self.data[0, 1] - other_position.data[0, 1])/y_length]
 
     def distance(self, other_position: 'Position') -> float:
         """两个位置之间的距离"""
