@@ -43,9 +43,6 @@ def generate_solution(ue_num: int) -> list:
     max_count = 3 ** ue_num
     possible_solutions = []
     for i in range(max_count):
-        # code = [0 for _ in range(ue_num)]
-        # for j in range(ue_num):
-        #     code[j] = (i // (3 ** j)) % 3
         code = [(i // (3 ** j)) % 3 for j in range(ue_num)]
         if code.count(1) <= max_compute:  # 如果在DPUAV上计算的没有超出DPUAV的计算上限
             possible_solutions.append(code)
@@ -60,28 +57,17 @@ class Area:
 
         self.agent_num = N_ETUAV
         self.single_action_dim = 2  # 角度和rate
-        self.single_obs_dim = N_user + 2 * (N_user + self.agent_num - 1)  # 用户的AoI、lambda、队列状况是公有部分，与其他的位置关系是私有部分
+        self.single_obs_dim = N_user + 2 * (N_user + self.agent_num - 1)
         self.share_obs_dim = self.agent_num * self.single_obs_dim
 
-        self.action_space = []
-        self.observation_space = []
-        self.share_observation_space = []
+        def return_single_box(box_shape):
+            return spaces.Box(low=-np.inf, high=+np.inf, shape=box_shape, dtype=np.float32)
+
+        self.action_space = [return_single_box((self.single_action_dim,)) for _ in range(self.agent_num)]
+        self.observation_space = [return_single_box((self.single_obs_dim,)) for _ in range(self.agent_num)]
+        self.share_observation_space = [return_single_box((self.share_obs_dim,)) for _ in range(self.agent_num)]
 
         total_action_space = []
-        for agent in range(self.agent_num):
-            # physical action space
-            u_action_space = spaces.Box(low=-np.inf, high=+np.inf, shape=(self.single_action_dim,), dtype=np.float32)
-
-            # total action space
-            self.action_space.append(u_action_space)
-
-            # observation space
-            self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(self.single_obs_dim,),
-                                                     dtype=np.float32))  # [-inf,inf]
-
-        # shared observation space
-        self.share_observation_space = [spaces.Box(low=-np.inf, high=+np.inf, shape=(self.share_obs_dim,),
-                                                   dtype=np.float32) for _ in range(self.agent_num)]
 
         self.limit = np.empty((2, 2), np.float32)
         """场地限制"""
@@ -113,47 +99,54 @@ class Area:
         return np.stack(state)
 
     def render(self):
-        print(self.ETUAVs[0].position.tail)
+        # 打印ETUAV轨迹
+        for i in range(N_ETUAV):
+            print('etuav',i,'tail:')
+            print(self.ETUAVs[i].position.tail)
 
-        print(self.UEs[0].position.data[0,0],self.UEs[0].position.data[0,1])
+        # print(self.UEs[0].position.data[0,0],self.UEs[0].position.data[0,1])
+        # 画user离散点
         for i in range(N_user):
             plt.scatter([self.UEs[i].position.data[0, 0]], [self.UEs[i].position.data[0, 1]], c=['r'])
-        plt.plot(self.ETUAVs[0].position.tail[:,0],self.ETUAVs[0].position.tail[:,1])
+        # 画出ETUAV轨迹
+        for i in range(N_ETUAV):
+            plt.plot(self.ETUAVs[i].position.tail[:,0],self.ETUAVs[i].position.tail[:,1])
         plt.show()
 
-    def step(self, actions):  # action是每个agent动作向量(ndarray[0-2pi, 0-1])的列表，DP在前ET在后
+    def step(self, actions):  # action是每个agent动作向量(ndarray[0-2pi, 0-1])(实际输入范围都为-1到1)的列表，DP在前ET在后
 
-        # 由强化学习控制，ETUAV开始运动
-        etuav_move_energy = [0.0 for _ in range(N_ETUAV)]
+        # 由强化学习控制，ETUAV开始运动,并记录运动能耗
+        etuav_move_energy = [etuav.move_by_radian_rate_2(actions[i][0], actions[i][1]) for i, etuav in
+                             enumerate(self.ETUAVs)]
         """ETUAV运动的能耗"""
-        for i, etuav in enumerate(self.ETUAVs):
-            etuav_move_energy[i] = etuav.move_by_radian_rate_2(actions[i][0], actions[i][1])
 
-        # ETUAV充电
-        for etuav in self.ETUAVs:
-            etuav.charge_all_ues(self.UEs)
+
+        # ETUAV充电,并记录充入的电量
+        etuav_charge_energy = [etuav.charge_all_ues(self.UEs) for etuav in self.ETUAVs]
+        """ETUAV给用户冲入的电量"""
 
         # 计算目标函数
-        target = [self.calcul_etuav_target()]
-        reward = [target] * N_ETUAV
+        target = self.calcul_etuav_target()
+        reward = np.full((N_ETUAV,1),target,dtype=np.float32)
+
         # 加入能量消耗惩罚
+        weight_energy = 0.0001
+        """能量消耗的权重"""
         for i in range(N_ETUAV):
-            reward[i][0] -= etuav_move_energy[i] * 0.0001
+            reward[i][0] -= etuav_move_energy[i] * weight_energy
         # UE产生数据
         for ue in self.UEs:
             ue.generate_task()
         # 计算状态
         state = self.calcul_etuav_state()
-
+        # 计算是否结束
         done = self.calcul_dones()
 
-        return np.stack(state), np.stack(reward), np.stack(done), ''
+        return np.array(state), reward, done, ''
 
     def calcul_dones(self):
         """生成是否结束的数列"""
-        dones = []
-        for _ in range(self.agent_num):
-            dones.append(False)
+        dones = np.full((self.agent_num,),False)
         return dones
 
     def calcul_etuav_target(self) -> float:
