@@ -29,7 +29,7 @@ class UE:
         self.energy_state = 1 if self.energy >= self.energy_threshold else 0
         """电量状态，1为高电量，0为低电量"""
 
-        self.energy_conversion_efficiency = 0.2
+        self.energy_conversion_efficiency = 0.1
         """无线充电时能量收集效率"""
 
         self.task = None

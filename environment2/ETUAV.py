@@ -23,10 +23,10 @@ class ETUAV(UAV):
         for ue in ues:
             sum_charge_energy += self.charge_ue(ue)
 
-    def charge_energy(self, ue: UE):
+    def get_charge_energy(self, ue: UE):
         """返回充电量，并不实际充电"""
         gain = calcul_channel_gain(self.position, ue.position)
-        energy = gain * self.charge_power * time_slice
+        energy = gain * self.charge_power * time_slice * ue.energy_conversion_efficiency
         """可以冲入的电量"""
         empty_energy = ue.get_energy_max() - ue.get_energy()
         """UE可以充入的电量空间"""
@@ -36,4 +36,4 @@ class ETUAV(UAV):
 if __name__ == '__main__':
     etuav = ETUAV(Position(0, 0, ETUAV_height))
     ue1 = UE(Position(0, 50, 0))
-    print(etuav.charge_energy(ue1))
+    print(etuav.get_charge_energy(ue1))
