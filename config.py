@@ -167,13 +167,13 @@ def get_config():
                         action='store_false', default=False, help="by default, make sure random seed effective. if set, bypass such function.")
     parser.add_argument("--n_training_threads", type=int,
                         default=1, help="Number of torch threads for training")  # ？
-    parser.add_argument("--n_rollout_threads", type=int, default=10,
+    parser.add_argument("--n_rollout_threads", type=int, default=8,
                         help="Number of parallel envs for training rollouts")  # 同时训练的环境数
-    parser.add_argument("--n_eval_rollout_threads", type=int, default=5,
+    parser.add_argument("--n_eval_rollout_threads", type=int, default=8,
                         help="Number of parallel envs for evaluating rollouts")
     parser.add_argument("--n_render_rollout_threads", type=int, default=1,
                         help="Number of parallel envs for rendering rollouts")
-    parser.add_argument("--num_env_steps", type=int, default=2000000,
+    parser.add_argument("--num_env_steps", type=int, default=20000000,
                         help='Number of environment steps to train (default: 10e6)')  # 训练的总步数
 
     # wandb
@@ -281,7 +281,7 @@ def get_config():
     # eval parameters
     parser.add_argument("--use_eval", action='store_true', default=True,
                         help="whether start evaluation alongside with training.")  # 训练过程中是否evaluate
-    parser.add_argument("--eval_interval", type=int, default=100,
+    parser.add_argument("--eval_interval", type=int, default=10,
                         help="time duration between contiunous twice evaluation progress.")  # 测试间隔
     parser.add_argument("--eval_episodes", type=int, default=4,
                         help="number of episodes of a single evaluation.")  # 测试环境的数量

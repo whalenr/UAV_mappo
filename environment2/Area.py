@@ -151,16 +151,22 @@ class Area:
 
     def calcul_etuav_target(self) -> float:
         """计算etuav的目标函数值"""
-        sum_energy = sum([ue.get_energy_percent() for ue in self.UEs]) / N_user
+        ue_energy_percent = [ue.get_energy_percent() for ue in self.UEs]
+        average_energy = np.mean(ue_energy_percent)
         """用户平均百分比电量"""
+        weight1 = 1
+        var_average = np.var(ue_energy_percent)
+        """用户百分比电量方差"""
+        weight2 = 0.2
+
         punish = sum([ue.get_energy_state() - 1 for ue in self.UEs])
         """低电量惩罚（是负数）"""
-        weight1 = 1
-        weight2 = 0
+
+        wieght3 = 0
         """低电量惩罚权重"""
         bias = 0
         """为强化学习方便的一个偏置"""
-        return (sum_energy * weight1 + punish * weight2-bias)
+        return (average_energy * weight1 + var_average * weight2 +punish * wieght3-bias)
 
     def calcul_etuav_target_2(self)->float:
         """计算etuav的目标函数值，增加边界外惩罚"""

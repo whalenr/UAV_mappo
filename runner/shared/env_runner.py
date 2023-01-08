@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from runner.shared.base_runner import Runner
 import imageio
+import matplotlib.pyplot as plt
 
 
 def _t2n(x):
@@ -21,6 +22,7 @@ class EnvRunner(Runner):
         self.warmup()
 
         start = time.time()
+        returns = []
         episodes = int(self.num_env_steps) // self.episode_length // self.n_rollout_threads
 
         # 训练episodes次
@@ -55,22 +57,31 @@ class EnvRunner(Runner):
             # log information
             if episode % self.log_interval == 0:
                 end = time.time()
-                print("\n {}/{} episodes, {}/{} steps, {}/{} seconds.\n"
+                print(" {}/{} episodes, {}/{} steps, {}/{} seconds.\n"
                       .format(episode,
                               episodes,
                               total_num_steps,
                               self.num_env_steps,
                               int(end - start),
                               int(self.num_env_steps / total_num_steps * (end - start))))
-                # buffer中的episode的总reward
-                train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
-                print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))
+                # # buffer中的episode的总reward
+                # train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
+                # print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))
                 self.log_train(train_infos, total_num_steps)
                 # self.log_env(env_infos, total_num_steps)
 
             # evaluate
             if episode % self.eval_interval == 0 and self.use_eval:
-                self.eval(self.episode_length)
+                evaluate_reward = self.eval(self.episode_length)
+                returns.append(evaluate_reward)
+                plt.figure()
+                plt.plot(range(len(returns)), returns)
+                plt.xlabel('episode')
+                plt.ylabel('average returns')
+                plt.savefig(self.run_dir/'plt.png', format='png')
+                plt.close()
+
+
 
     def warmup(self):
         obs = self.envs.reset()  # shape = (并行环境数, 智能体数, 观测环境维数)
@@ -172,4 +183,6 @@ class EnvRunner(Runner):
         self.log_env(eval_env_infos, total_num_steps)
 
         """画图"""
-        self.eval_envs.render()
+        # self.eval_envs.render()
+
+        return eval_average_episode_rewards

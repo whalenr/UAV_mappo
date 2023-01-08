@@ -59,7 +59,7 @@ class Runner(object):
         from algorithms.algorithm.r_mappo import RMAPPO as TrainAlgo
         from algorithms.algorithm.rMAPPOPolicy import RMAPPOPolicy as Policy
 
-        # envs中要定义share_observation_space[0]和observation_space[0]，分别表示共享的和不共享的观测环境的（维数？）
+        """envs中要定义share_observation_space[0]和observation_space[0]，分别表示共享的和不共享的观测环境的（维数？）"""
         share_observation_space = self.envs.share_observation_space[0] if self.use_centralized_V else self.envs.observation_space[0]
 
         # policy network
