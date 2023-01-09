@@ -114,12 +114,14 @@ def main(args):
         from runner.separated.env_runner import EnvRunner as Runner
     runner = Runner(config)
 
-    # 主程序入口
-    runner.run()
+    if not all_args.single_eval:
+        # 主程序入口
+        runner.run()
 
-    # ？？？
-    runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
-    runner.writter.close()
+        runner.writter.export_scalars_to_json(str(runner.log_dir + '/summary.json'))
+        runner.writter.close()
+    else:
+        runner.single_eval()
 
 
 if __name__ == "__main__":

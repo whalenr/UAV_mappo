@@ -180,7 +180,7 @@ def get_config():
     parser.add_argument("--use_wandb", type=bool, default=True,
                         help="by default True, will log date to wandb server. or else will use tensorboard to log data.")
     parser.add_argument("--user_name", type=str, default='marl',
-                        help="[for wandb usage], to specify user's name for simply collecting training data.")  # wandb参数
+                        help="[for wandb usage], to specify user's name for simply collecting training data.")
 
     # env parameters
     parser.add_argument("--use_obs_instead_of_state", action='store_true',
@@ -210,7 +210,7 @@ def get_config():
     parser.add_argument("--use_valuenorm", action='store_false', default=True,
                         help="by default True, use running mean and std to normalize rewards.")  # 是否对reward进行白化
     parser.add_argument("--use_feature_normalization", action='store_false',
-                        default=True, help="Whether to apply layernorm to the inputs")  # ？是否对环境数据进行预处理？
+                        default=True, help="Whether to apply layernorm to the inputs")  # 是否对环境数据进行预处理
     parser.add_argument("--use_orthogonal", action='store_false', default=True,
                         help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
     parser.add_argument("--gain", type=float, default=0.01,
@@ -281,10 +281,11 @@ def get_config():
     # eval parameters
     parser.add_argument("--use_eval", action='store_true', default=True,
                         help="whether start evaluation alongside with training.")  # 训练过程中是否evaluate
+    parser.add_argument("--single_eval", action='store_true', default=True, help="whether to evaluate")  # 是否进行单次evaluate
     parser.add_argument("--eval_interval", type=int, default=10,
                         help="time duration between contiunous twice evaluation progress.")  # 测试间隔
     parser.add_argument("--eval_episodes", type=int, default=4,
-                        help="number of episodes of a single evaluation.")  # 测试环境的数量
+                        help="number of episodes of a single evaluation.")  # 测试的次数
 
     # render parameters
     parser.add_argument("--save_gifs", action='store_true', default=False, help="by default, do not save render video. If set, save video.")
@@ -293,6 +294,7 @@ def get_config():
     parser.add_argument("--ifi", type=float, default=0.1, help="the play interval of each rendered image in saved video.")
 
     # pretrained parameters
-    parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
+    parser.add_argument("--model_dir", type=str, default='G:/Pycharm/UAV_mappo/results/models',
+                        help="by default None. set the path to pretrained model.")  # 要检测/继续训练的模型的路径
 
     return parser

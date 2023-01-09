@@ -186,3 +186,9 @@ class EnvRunner(Runner):
         # self.eval_envs.render()
 
         return eval_average_episode_rewards
+
+    def single_eval(self):
+        evaluate_reward = self.eval(self.episode_length)
+        self.eval_envs.render()
+
+        print("evaluate reward: " + str(evaluate_reward))
