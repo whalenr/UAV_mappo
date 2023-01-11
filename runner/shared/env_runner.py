@@ -72,11 +72,11 @@ class EnvRunner(Runner):
 
             # evaluate
             if episode % self.eval_interval == 0 and self.use_eval:
-                evaluate_reward = self.eval(self.episode_length)
+                evaluate_reward = self.eval(total_num_steps)
                 returns.append(evaluate_reward)
                 plt.figure()
                 plt.plot(range(len(returns)), returns)
-                plt.xlabel('episode')
+                plt.xlabel('episode * ' + str(self.eval_interval * self.n_rollout_threads))
                 plt.ylabel('average returns')
                 plt.savefig(self.run_dir/'plt.png', format='png')
                 plt.close()

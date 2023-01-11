@@ -130,7 +130,7 @@ class Area:
         reward = np.full((N_ETUAV,1),target,dtype=np.float32)
 
         # 加入能量消耗惩罚
-        weight_energy = 0.0001
+        weight_energy = 0 # 0.0001
         """能量消耗的权重"""
         for i in range(N_ETUAV):
             reward[i][0] -= etuav_move_energy[i] * weight_energy
@@ -157,16 +157,16 @@ class Area:
         weight1 = 1
         var_average = np.var(ue_energy_percent)
         """用户百分比电量方差"""
-        weight2 = 0.2
+        weight2 = 0
 
         punish = sum([ue.get_energy_state() - 1 for ue in self.UEs])
         """低电量惩罚（是负数）"""
 
         wieght3 = 0
         """低电量惩罚权重"""
-        bias = 0
+        bias = 0.2
         """为强化学习方便的一个偏置"""
-        return (average_energy * weight1 + var_average * weight2 +punish * wieght3-bias)
+        return (average_energy * weight1 - var_average * weight2 +punish * wieght3-bias)
 
     def calcul_etuav_target_2(self)->float:
         """计算etuav的目标函数值，增加边界外惩罚"""
