@@ -201,13 +201,13 @@ def get_config():
                         default=False, help="Whether to use stacked_frames")
     parser.add_argument("--hidden_size", type=int, default=64,
                         help="Dimension of hidden layers for actor/critic networks")  # 网络神经元个数
-    parser.add_argument("--layer_N", type=int, default=1,
+    parser.add_argument("--layer_N", type=int, default=2,
                         help="Number of layers for actor/critic networks")  # 网路层数
     parser.add_argument("--use_ReLU", action='store_false',
                         default=False, help="Whether to use ReLU or tanh")
-    parser.add_argument("--use_popart", action='store_true', default=False,
+    parser.add_argument("--use_popart", action='store_true', default=True,
                         help="by default False, use PopArt to normalize rewards.")  # 是否使用PopArt对reward进行归一化
-    parser.add_argument("--use_valuenorm", action='store_false', default=True,
+    parser.add_argument("--use_valuenorm", action='store_false', default=False,
                         help="by default True, use running mean and std to normalize rewards.")  # 是否对reward进行白化
     parser.add_argument("--use_feature_normalization", action='store_false',
                         default=True, help="Whether to apply layernorm to the inputs")  # 是否对环境数据进行预处理
@@ -253,7 +253,7 @@ def get_config():
                         help='max norm of gradients (default: 0.5)')
     parser.add_argument("--use_gae", action='store_false',
                         default=True, help='use generalized advantage estimation')
-    parser.add_argument("--gamma", type=float, default=0.6,
+    parser.add_argument("--gamma", type=float, default=0.0,
                         help='discount factor for rewards (default: 0.99)')  # 衰减因子
     parser.add_argument("--gae_lambda", type=float, default=0.95,
                         help='gae lambda parameter (default: 0.95)')

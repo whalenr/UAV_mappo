@@ -100,9 +100,9 @@ class Area:
 
     def render(self):
         # 打印ETUAV轨迹
-        for i in range(N_ETUAV):
-            print('etuav',i,'tail:')
-            print(self.ETUAVs[i].position.tail)
+        # for i in range(N_ETUAV):
+        #     print('etuav',i,'tail:')
+        #     print(self.ETUAVs[i].position.tail)
 
         # print(self.UEs[0].position.data[0,0],self.UEs[0].position.data[0,1])
         # 画user离散点
@@ -110,6 +110,7 @@ class Area:
             plt.scatter([self.UEs[i].position.data[0, 0]], [self.UEs[i].position.data[0, 1]], c=['r'])
         # 画出ETUAV轨迹
         for i in range(N_ETUAV):
+            plt.scatter([self.ETUAVs[i].position.data[0, 0]], [self.ETUAVs[i].position.data[0, 1]], c=['b'])
             plt.plot(self.ETUAVs[i].position.tail[:,0],self.ETUAVs[i].position.tail[:,1])
         plt.show()
 
@@ -164,9 +165,9 @@ class Area:
 
         wieght3 = 0
         """低电量惩罚权重"""
-        bias = 0.2
+        bias = 0.1
         """为强化学习方便的一个偏置"""
-        return (average_energy * weight1 - var_average * weight2 +punish * wieght3-bias)
+        return average_energy * weight1 - var_average * weight2 + punish * wieght3 - bias
 
     def calcul_etuav_target_2(self)->float:
         """计算etuav的目标函数值，增加边界外惩罚"""
