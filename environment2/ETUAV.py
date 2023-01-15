@@ -22,6 +22,7 @@ class ETUAV(UAV):
         sum_charge_energy = 0
         for ue in ues:
             sum_charge_energy += self.charge_ue(ue)
+        return sum_charge_energy
 
     def get_charge_energy(self, ue: UE):
         """返回充电量，并不实际充电"""

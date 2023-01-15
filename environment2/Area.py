@@ -125,16 +125,17 @@ class Area:
         # ETUAV充电,并记录充入的电量
         etuav_charge_energy = [etuav.charge_all_ues(self.UEs) for etuav in self.ETUAVs]
         """ETUAV给用户冲入的电量"""
-
+        weight_charge = 1
         # 计算目标函数
         target = self.calcul_etuav_target()
-        reward = np.full((N_ETUAV,1),target,dtype=np.float32)
-
+        # reward = np.full((N_ETUAV,1),target,dtype=np.float32)
+        reward = np.zeros((N_ETUAV, 1), dtype=np.float32)
         # 加入能量消耗惩罚
         weight_energy = 0 # 0.0001
         """能量消耗的权重"""
         for i in range(N_ETUAV):
             reward[i][0] -= etuav_move_energy[i] * weight_energy
+            reward[i][0] += etuav_charge_energy[i] * weight_charge
         # UE产生数据
         for ue in self.UEs:
             ue.generate_task()
@@ -187,7 +188,7 @@ class Area:
             if not self.if_in_area(et.position):
                 out_count += 1
 
-        return (sum_energy * weight1 + punish * weight2 - out_punish*out_count)
+        return sum_energy * weight1 + punish * weight2 - out_punish * out_count
 
 
 

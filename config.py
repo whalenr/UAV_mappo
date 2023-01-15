@@ -201,7 +201,7 @@ def get_config():
                         default=False, help="Whether to use stacked_frames")
     parser.add_argument("--hidden_size", type=int, default=64,
                         help="Dimension of hidden layers for actor/critic networks")  # 网络神经元个数
-    parser.add_argument("--layer_N", type=int, default=2,
+    parser.add_argument("--layer_N", type=int, default=1,
                         help="Number of layers for actor/critic networks")  # 网路层数
     parser.add_argument("--use_ReLU", action='store_false',
                         default=False, help="Whether to use ReLU or tanh")
