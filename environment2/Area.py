@@ -125,11 +125,11 @@ class Area:
         # ETUAV充电,并记录充入的电量
         etuav_charge_energy = [etuav.charge_all_ues(self.UEs) for etuav in self.ETUAVs]
         """ETUAV给用户冲入的电量"""
-        weight_charge = 1
+        weight_charge = 0 # 10000
         # 计算目标函数
         target = self.calcul_etuav_target()
-        # reward = np.full((N_ETUAV,1),target,dtype=np.float32)
-        reward = np.zeros((N_ETUAV, 1), dtype=np.float32)
+        reward = np.full((N_ETUAV,1),target,dtype=np.float32)
+        # reward = np.zeros((N_ETUAV, 1), dtype=np.float32)
         # 加入能量消耗惩罚
         weight_energy = 0 # 0.0001
         """能量消耗的权重"""

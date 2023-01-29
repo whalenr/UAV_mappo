@@ -37,6 +37,7 @@ class Runner(object):
         self.hidden_size = self.all_args.hidden_size
         self.use_render = self.all_args.use_render
         self.recurrent_N = self.all_args.recurrent_N
+        self.terminate_reward = self.all_args.terminate_reward
 
         # interval
         self.save_interval = self.all_args.save_interval
@@ -55,6 +56,9 @@ class Runner(object):
         self.save_dir = str(self.run_dir / 'models')
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+
+        # terminate
+        self.terminate = False
 
         from algorithms.algorithm.r_mappo import RMAPPO as TrainAlgo
         from algorithms.algorithm.rMAPPOPolicy import RMAPPOPolicy as Policy

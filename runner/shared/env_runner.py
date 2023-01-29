@@ -24,9 +24,12 @@ class EnvRunner(Runner):
         start = time.time()
         returns = []
         episodes = int(self.num_env_steps) // self.episode_length // self.n_rollout_threads
+        episode = -1
 
         # 训练episodes次
-        for episode in range(episodes):
+        while not self.terminate:
+        # for episode in range(episodes):
+            episode += 1
             # 更新learning rate
             if self.use_linear_lr_decay:
                 self.trainer.policy.lr_decay(episode, episodes)
@@ -74,6 +77,7 @@ class EnvRunner(Runner):
             if episode % self.eval_interval == 0 and self.use_eval:
                 evaluate_reward = self.eval(total_num_steps)
                 returns.append(evaluate_reward)
+                np.savetxt(self.run_dir/'reward.csv',returns,delimiter=',')
                 plt.figure()
                 plt.plot(range(len(returns)), returns)
                 plt.xlabel('episode * ' + str(self.eval_interval * self.n_rollout_threads))
@@ -81,6 +85,13 @@ class EnvRunner(Runner):
                 plt.savefig(self.run_dir/'plt.png', format='png')
                 plt.close()
 
+                # 是否大于某个值
+                if self.terminate_reward and evaluate_reward >= self.terminate_reward:
+                    self.terminate = True
+
+            # 是否大于规定的步数
+            if episode >= episodes:
+                self.terminate = True
 
 
     def warmup(self):

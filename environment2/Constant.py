@@ -20,7 +20,7 @@ ETUAV_height =80
 """ETUAV飞行高度(m)"""
 DPUAV_height = 100
 """DPUAV飞行高度(m)"""
-ETUAV_speed = 100
+ETUAV_speed = 10
 """ETUAV飞行速度(m/s)"""
 DPUAV_speed = 10
 """DPUAV飞行速度(m/s)"""

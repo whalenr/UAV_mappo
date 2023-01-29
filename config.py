@@ -199,9 +199,9 @@ def get_config():
                         help="Dimension of hidden layers for actor/critic networks")  # ？
     parser.add_argument("--use_stacked_frames", action='store_true',
                         default=False, help="Whether to use stacked_frames")
-    parser.add_argument("--hidden_size", type=int, default=64,
+    parser.add_argument("--hidden_size", type=int, default=6,
                         help="Dimension of hidden layers for actor/critic networks")  # 网络神经元个数
-    parser.add_argument("--layer_N", type=int, default=1,
+    parser.add_argument("--layer_N", type=int, default=2,
                         help="Number of layers for actor/critic networks")  # 网路层数
     parser.add_argument("--use_ReLU", action='store_false',
                         default=False, help="Whether to use ReLU or tanh")
@@ -253,7 +253,7 @@ def get_config():
                         help='max norm of gradients (default: 0.5)')
     parser.add_argument("--use_gae", action='store_false',
                         default=True, help='use generalized advantage estimation')
-    parser.add_argument("--gamma", type=float, default=0.0,
+    parser.add_argument("--gamma", type=float, default=0.6,
                         help='discount factor for rewards (default: 0.99)')  # 衰减因子
     parser.add_argument("--gae_lambda", type=float, default=0.95,
                         help='gae lambda parameter (default: 0.95)')
@@ -286,6 +286,7 @@ def get_config():
                         help="time duration between contiunous twice evaluation progress.")  # 测试间隔
     parser.add_argument("--eval_episodes", type=int, default=4,
                         help="number of episodes of a single evaluation.")  # 测试的次数
+    parser.add_argument("--terminate_reward", type=float, default=None, help="when to stop")  # 停止的reward阈值
 
     # render parameters
     parser.add_argument("--save_gifs", action='store_true', default=False, help="by default, do not save render video. If set, save video.")

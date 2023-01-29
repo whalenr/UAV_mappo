@@ -17,7 +17,7 @@ class UE:
 
         self.high_probability = 1
         """高电量时每个时间间隔产生数据的概率，待定"""
-        self.low_probability = 1
+        self.low_probability = 0.8
         """低电量时每个时间间隔产生数据的概率，待定"""
 
         self.energy = 1 * (10 ** (-5)) * random.random()
